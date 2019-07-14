@@ -1,4 +1,4 @@
-#include <keys.h>
+#include <keys.h> //Wifi and RemoteMe API
 
 #define STEPPIN 14
 #define DIRPIN 4
@@ -6,8 +6,7 @@
 #define STEPS 575000
 
 int flag = 0;
-int boot = 0;
-int lastPos = 0;
+int boot = 1;
 
 #include <RemoteMe.h>
 #include <RemoteMeSocketConnector.h>
@@ -24,47 +23,42 @@ inline void setPosition(int32_t i) {remoteMe.getVariables()->setInteger("positio
 
 //*************** IMPLEMENT FUNCTIONS BELOW *********************
 
-void onPositionChange(int32_t i) {
+void onPositionChange(int32_t position) {
 
-    if(boot != 0) {
-
-        if (i == 1 && lastPos != 1) {
-            stepper.move(-STEPS);
-            lastPos = 1;
+    if (boot == 1) {
+        if (position == 0) {
+            stepper.setCurrentPosition(0);
         }
-        else if(i == 2 && lastPos != 2) {
-            int halfStep = STEPS / 2;
-            stepper.move(-halfStep);
-            lastPos = 2;
-        } 
-        else if (i == 0 && lastPos != 0) {
-            if (lastPos == 1) {
-                stepper.move(STEPS);
-                lastPos = 0;
-            }
-            else if(lastPos == 2) {
-                int halfStep = STEPS / 2;
-                stepper.move(halfStep);
-                lastPos = 0;
-            }
+        if (position == 1) {
+            stepper.setCurrentPosition(STEPS);
+        }
+        if (position == 2) {
+            stepper.setCurrentPosition(STEPS/2);
+        }
+        boot = 0;
+    } else {
+
+        if (position == 0) {
+            stepper.moveTo(0);
+        }
+        if (position == 1) {
+            stepper.moveTo(STEPS);
+        }
+        if (position == 2) {
+            stepper.moveTo(STEPS/2);
         }
 
         stepper.enableOutputs();
         stepper.setSpeed(10000);
 
         flag = 0;
-
-    } else { 
-        boot = 1;
     }
 }
 
 void setup() {
     stepper.setMaxSpeed(200000); 
     stepper.setAcceleration(10000);
-
     stepper.setEnablePin(EPIN);
-    //stepper.setPinsInverted(DIRPIN);
 
     WiFi.begin(WIFI_NAME, WIFI_PASSWORD);
 
@@ -72,12 +66,9 @@ void setup() {
         delay(100);
     }
 
-    remoteMe.getVariables()->observeInteger("position" ,onPositionChange);
-
+    remoteMe.getVariables()->observeInteger("position", onPositionChange);
     remoteMe.setConnector(new RemoteMeSocketConnector());
-
     remoteMe.sendRegisterDeviceMessage(DEVICE_NAME);
-
 }
 
 
