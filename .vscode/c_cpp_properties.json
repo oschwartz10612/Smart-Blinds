@@ -43,7 +43,6 @@
                 "/Users/owenschwartz/.platformio/packages/framework-arduinoespressif8266/libraries/Wire",
                 "/Users/owenschwartz/.platformio/packages/framework-arduinoespressif8266/libraries/esp8266/src",
                 "/Users/owenschwartz/.platformio/packages/tool-unity",
-                "/Users/owenschwartz/Desktop/Smart-Blinds/include",
                 "/Users/owenschwartz/Desktop/Smart-Blinds/src",
                 ""
             ],
@@ -87,7 +86,6 @@
                     "/Users/owenschwartz/.platformio/packages/framework-arduinoespressif8266/libraries/Wire",
                     "/Users/owenschwartz/.platformio/packages/framework-arduinoespressif8266/libraries/esp8266/src",
                     "/Users/owenschwartz/.platformio/packages/tool-unity",
-                    "/Users/owenschwartz/Desktop/Smart-Blinds/include",
                     "/Users/owenschwartz/Desktop/Smart-Blinds/src",
                     ""
                 ]
