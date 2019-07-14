@@ -1,15 +1,15 @@
 language: python
 python:
-    - "2.7"
-
+- '2.7'
 sudo: false
 cache:
-    directories:
-        - "~/.platformio"
-
+  directories:
+  - "~/.platformio"
 install:
-    - pip install -U platformio
-    - platformio update
-
+- pip install -U platformio
+- platformio update
 script:
-    - platformio run
+- platformio run
+before_install:
+- openssl aes-256-cbc -K $encrypted_ca9e20befd83_key -iv $encrypted_ca9e20befd83_iv
+  -in keys.h.enc -out src/keys.h -d
