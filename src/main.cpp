@@ -1,4 +1,16 @@
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
 #include <keys.h> //Wifi and RemoteMe API
+#include <AccelStepper.h>
+
+
+// Update these with values suitable for your network.
+
+const char *mqtt_server = "192.168.1.183";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+unsigned long lastMsg = 0;
 
 #define STEPPIN 14
 #define DIRPIN 4
@@ -7,45 +19,76 @@
 
 int flag = 0;
 int boot = 1;
-
-#include <RemoteMe.h>
-#include <RemoteMeSocketConnector.h>
-#include <ESP8266WiFi.h>
-#include <AccelStepper.h>
+int inch = 0;
 
 AccelStepper stepper(AccelStepper::DRIVER, STEPPIN, DIRPIN);
 
-RemoteMe& remoteMe = RemoteMe::getInstance(TOKEN, DEVICE_ID);
+void setup_wifi()
+{
 
-//*************** CODE FOR CONFORTABLE VARIABLE SET *********************
+    delay(10);
+    // We start by connecting to a WiFi network
+    Serial.println();
+    Serial.print("Connecting to ");
+    Serial.println(WIFI_NAME);
 
-inline void setPosition(int32_t i) {remoteMe.getVariables()->setInteger("position", i); }
+    WiFi.begin(WIFI_NAME, WIFI_PASSWORD);
 
-//*************** IMPLEMENT FUNCTIONS BELOW *********************
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+    }
 
-void onPositionChange(int32_t position) {
+    randomSeed(micros());
 
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+}
+
+void callback(char *topic, byte *payload, unsigned int length)
+{
+    Serial.print("Message arrived [");
+    Serial.print(topic);
+    Serial.print("] ");
+
+    payload[length] = '\0';
+    String position = String((char*)payload);
+
+    Serial.print(position);
+    Serial.println();
+
+    //stepper
     if (boot == 1) {
-        if (position == 0) {
+        if (position == "close") {
             stepper.setCurrentPosition(0);
         }
-        if (position == 1) {
+        if (position == "open") {
             stepper.setCurrentPosition(STEPS);
         }
-        if (position == 2) {
+        if (position == "mid") {
             stepper.setCurrentPosition(STEPS/2);
+        }
+        if (position == "inch") {
+            stepper.moveTo(0);
         }
         boot = 0;
     } else {
 
-        if (position == 0) {
+        if (position == "close") {
             stepper.moveTo(0);
         }
-        if (position == 1) {
+        if (position == "open") {
             stepper.moveTo(STEPS);
         }
-        if (position == 2) {
+        if (position == "mid") {
             stepper.moveTo(STEPS/2);
+        }
+        if (position == "inch") {
+            stepper.moveTo(1000);
+            inch = 1;
         }
 
         stepper.enableOutputs();
@@ -53,32 +96,79 @@ void onPositionChange(int32_t position) {
 
         flag = 0;
     }
+
 }
 
-void setup() {
-    stepper.setMaxSpeed(200000); 
+void reconnect()
+{
+    // Loop until we're reconnected
+    while (!client.connected())
+    {
+        Serial.print("Attempting MQTT connection...");
+        stepper.disableOutputs();
+        // Create a random client ID
+        String clientId = "Desk_Cover-";
+        clientId += String(random(0xffff), HEX);
+        // Attempt to connect
+        if (client.connect(clientId.c_str()))
+        {
+            Serial.println("connected");
+            // Once connected, publish an announcement...
+            client.publish("home-assistant/desk_cover/availability", "online");
+            // ... and resubscribe
+            client.subscribe("home-assistant/desk_cover/set");
+            client.subscribe("home-assistant/desk_cover/set_position");
+        }
+        else
+        {
+            Serial.print("failed, rc=");
+            Serial.print(client.state());
+            Serial.println(" try again in 5 seconds");
+            // Wait 5 seconds before retrying
+            delay(5000);
+        }
+    }
+}
+
+void setup()
+{
+    Serial.begin(115200);
+    stepper.setMaxSpeed(200000);
     stepper.setAcceleration(10000);
     stepper.setEnablePin(EPIN);
+    stepper.disableOutputs();
+    setup_wifi();
+    client.setServer(mqtt_server, 1883);
+    client.setCallback(callback);
 
-    WiFi.begin(WIFI_NAME, WIFI_PASSWORD);
-
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(100);
-    }
-
-    remoteMe.getVariables()->observeInteger("position", onPositionChange);
-    remoteMe.setConnector(new RemoteMeSocketConnector());
-    remoteMe.sendRegisterDeviceMessage(DEVICE_NAME);
 }
 
+void loop()
+{
 
-void loop() {
-    remoteMe.loop();
+    if (!client.connected())
+    {
+        reconnect();
+    }
+    client.loop();
+
+    unsigned long now = millis();
+    if (now - lastMsg > 60000)
+    {
+        lastMsg = now;
+        client.publish("home-assistant/desk_cover/availability", "online");
+    }
 
     stepper.runSpeedToPosition();
 
     if(stepper.distanceToGo() == 0 && flag == 0) {
         stepper.disableOutputs();
         flag = 1;
+        if (inch == 1)
+        {
+            stepper.setCurrentPosition(0);
+            inch = 0;
+        }
+        
     }
 }
