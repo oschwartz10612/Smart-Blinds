@@ -2,6 +2,7 @@
 #include <PubSubClient.h>
 #include <keys.h> //Wifi and RemoteMe API
 #include <AccelStepper.h>
+#include <ArduinoOTA.h>
 
 
 // Update these with values suitable for your network.
@@ -31,6 +32,7 @@ void setup_wifi()
     Serial.println();
     Serial.print("Connecting to ");
     Serial.println(WIFI_NAME);
+    WiFi.hostname("Smart_Blinds");
 
     WiFi.begin(WIFI_NAME, WIFI_PASSWORD);
 
@@ -133,6 +135,7 @@ void reconnect()
 void setup()
 {
     Serial.begin(115200);
+    ArduinoOTA.begin();
     stepper.setMaxSpeed(200000);
     stepper.setAcceleration(10000);
     stepper.setEnablePin(EPIN);
@@ -145,6 +148,7 @@ void setup()
 
 void loop()
 {
+    ArduinoOTA.handle();
 
     if (!client.connected())
     {
