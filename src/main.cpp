@@ -89,7 +89,7 @@ void callback(char *topic, byte *payload, unsigned int length)
             stepper.moveTo(STEPS/2);
         }
         if (position == "inch") {
-            stepper.moveTo(1000);
+            stepper.moveTo(5000);
             inch = 1;
         }
 
