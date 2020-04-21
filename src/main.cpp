@@ -66,12 +66,15 @@ void callback(char *topic, byte *payload, unsigned int length)
     if (boot == 1) {
         if (position == "close") {
             stepper.setCurrentPosition(0);
+            client.publish("home-assistant/desk_cover/response", "OFF");
         }
         if (position == "open") {
             stepper.setCurrentPosition(STEPS);
+            client.publish("home-assistant/desk_cover/response", "ON");
         }
         if (position == "mid") {
             stepper.setCurrentPosition(STEPS/2);
+            client.publish("home-assistant/desk_cover/response", "ON");
         }
         if (position == "inch") {
             stepper.moveTo(0);
@@ -80,12 +83,15 @@ void callback(char *topic, byte *payload, unsigned int length)
     } else {
 
         if (position == "close") {
+            client.publish("home-assistant/desk_cover/response", "OFF");
             stepper.moveTo(0);
         }
         if (position == "open") {
+            client.publish("home-assistant/desk_cover/response", "ON");
             stepper.moveTo(STEPS);
         }
         if (position == "mid") {
+            client.publish("home-assistant/desk_cover/response", "ON");
             stepper.moveTo(STEPS/2);
         }
         if (position == "inch") {
