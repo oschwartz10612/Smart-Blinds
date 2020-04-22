@@ -18,9 +18,9 @@ unsigned long lastMsg = 0;
 #define STEPS 575000
 
 int flag = 0;
-int boot = 1;
 int inch = 0;
 int state = 0;
+int reset = 1;
 
 AccelStepper stepper(AccelStepper::DRIVER, STEPPIN, DIRPIN);
 
@@ -62,7 +62,7 @@ void callback(char *topic, byte *payload, unsigned int length)
     Serial.println();
 
     // stepper
-    if (boot == 1)
+    if (reset == 1)
     {
         if (position == "close")
         {
@@ -79,11 +79,7 @@ void callback(char *topic, byte *payload, unsigned int length)
             stepper.setCurrentPosition(STEPS / 2);
             state = 1;
         }
-        if (position == "inch")
-        {
-            stepper.moveTo(0);
-        }
-        boot = 0;
+        reset = 0;
     }
     else
     {
@@ -106,6 +102,10 @@ void callback(char *topic, byte *payload, unsigned int length)
         {
             stepper.moveTo(5000);
             inch = 1;
+        }
+        if (position == "reset")
+        {
+            reset = 1;
         }
 
         stepper.enableOutputs();
