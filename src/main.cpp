@@ -1,9 +1,8 @@
+#include <AccelStepper.h>
+#include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <keys.h> //Wifi and RemoteMe API
-#include <AccelStepper.h>
-#include <ArduinoOTA.h>
-
 
 // Update these with values suitable for your network.
 
@@ -21,12 +20,12 @@ unsigned long lastMsg = 0;
 int flag = 0;
 int boot = 1;
 int inch = 0;
+int state = 0;
 
 AccelStepper stepper(AccelStepper::DRIVER, STEPPIN, DIRPIN);
 
 void setup_wifi()
 {
-
     delay(10);
     // We start by connecting to a WiFi network
     Serial.println();
@@ -57,44 +56,54 @@ void callback(char *topic, byte *payload, unsigned int length)
     Serial.print("] ");
 
     payload[length] = '\0';
-    String position = String((char*)payload);
+    String position = String((char *)payload);
 
     Serial.print(position);
     Serial.println();
 
-    //stepper
-    if (boot == 1) {
-        if (position == "close") {
+    // stepper
+    if (boot == 1)
+    {
+        if (position == "close")
+        {
             stepper.setCurrentPosition(0);
-            client.publish("home-assistant/desk_cover/response", "OFF");
+            state = 0;
         }
-        if (position == "open") {
+        if (position == "open")
+        {
             stepper.setCurrentPosition(STEPS);
-            client.publish("home-assistant/desk_cover/response", "ON");
+            state = 1;
         }
-        if (position == "mid") {
-            stepper.setCurrentPosition(STEPS/2);
-            client.publish("home-assistant/desk_cover/response", "ON");
+        if (position == "mid")
+        {
+            stepper.setCurrentPosition(STEPS / 2);
+            state = 1;
         }
-        if (position == "inch") {
+        if (position == "inch")
+        {
             stepper.moveTo(0);
         }
         boot = 0;
-    } else {
-
-        if (position == "close") {
-            client.publish("home-assistant/desk_cover/response", "OFF");
+    }
+    else
+    {
+        if (position == "close")
+        {
             stepper.moveTo(0);
+            state = 0;
         }
-        if (position == "open") {
-            client.publish("home-assistant/desk_cover/response", "ON");
+        if (position == "open")
+        {
             stepper.moveTo(STEPS);
+            state = 1;
         }
-        if (position == "mid") {
-            client.publish("home-assistant/desk_cover/response", "ON");
-            stepper.moveTo(STEPS/2);
+        if (position == "mid")
+        {
+            stepper.moveTo(STEPS / 2);
+            state = 1;
         }
-        if (position == "inch") {
+        if (position == "inch")
+        {
             stepper.moveTo(5000);
             inch = 1;
         }
@@ -104,7 +113,6 @@ void callback(char *topic, byte *payload, unsigned int length)
 
         flag = 0;
     }
-
 }
 
 void reconnect()
@@ -149,7 +157,6 @@ void setup()
     setup_wifi();
     client.setServer(mqtt_server, 1883);
     client.setCallback(callback);
-
 }
 
 void loop()
@@ -171,7 +178,8 @@ void loop()
 
     stepper.runSpeedToPosition();
 
-    if(stepper.distanceToGo() == 0 && flag == 0) {
+    if (stepper.distanceToGo() == 0 && flag == 0)
+    {
         stepper.disableOutputs();
         flag = 1;
         if (inch == 1)
@@ -179,6 +187,16 @@ void loop()
             stepper.setCurrentPosition(0);
             inch = 0;
         }
-        
+        else
+        {
+            if (state == 1)
+            {
+                client.publish("home-assistant/desk_cover/response", "ON");
+            }
+            else
+            {
+                client.publish("home-assistant/desk_cover/response", "OFF");
+            }
+        }
     }
 }
